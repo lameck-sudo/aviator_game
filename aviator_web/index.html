@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aviator Simulator v2.0</title>
+<style>
+body {
+    margin: 0;
+    background: #f7f9fc;
+    font-family: "Segoe UI", Arial, sans-serif;
+    color: #111;
+}
+.container {
+    display: flex;
+    flex-direction: column;
+    padding: 8px;
+    max-width: 480px;
+    margin: auto;
+}
+.graph-box {
+    border: 2px solid #1e90ff;
+    border-radius: 10px;
+    width: 100%;
+    height: 250px;
+    position: relative;
+    background: #fff;
+    overflow: hidden;
+    margin-bottom: 10px;
+}
+#graphCanvas { width: 100%; height: 100%; }
+.multiplier {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    font-size: 22px;
+    font-weight: bold;
+}
+.status {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 26px;
+    color: #ff4500;
+    display: none;
+    font-weight: bold;
+    text-shadow: 0 0 6px #ff0000;
+}
+.panel {
+    background: #fff;
+    padding: 8px;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.12);
+}
+button {
+    background: #1e90ff;
+    border: none;
+    padding: 7px;
+    color: white;
+    cursor: pointer;
+    width: 100%;
+    margin-top: 4px;
+    border-radius: 4px;
+    font-weight: bold;
+}
+button:disabled { background: #aaa; cursor: not-allowed; }
+input, select {
+    width: 100%;
+    padding: 5px;
+    margin-top: 4px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+.history {
+    font-size: 12px;
+    max-height: 120px;
+    overflow-y: auto;
+}
+.ai-panel {
+    margin-top: 5px;
+}
+.info-panel {
+    font-size: 12px;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+    <div class="graph-box">
+        <canvas id="graphCanvas"></canvas>
+        <div class="multiplier" id="multiplier">WAITING</div>
+        <div class="status" id="status">FLEW AWAY ✈️</div>
+    </div>
+
+    <div class="panel">
+        <strong>Balance</strong>
+        <div id="balance">10000</div>
+    </div>
+
+    <div class="panel">
+        <strong>Bet</strong>
+        <input id="betAmount" type="number" value="100">
+        <button id="betBtn">Place Bet</button>
+        <button id="cashoutBtn" disabled>Cash Out</button>
+    </div>
+
+    <div class="panel">
+        <strong>Round History</strong>
+        <div class="history" id="history"></div>
+    </div>
+
+    <div class="panel ai-panel">
+        <strong>AI Predictor (Manual Input)</strong>
+        <input id="aiInput" type="text" placeholder="Example: 1.32,2.01,5.44">
+        <button id="predictBtn">Predict Next Round</button>
+        <div id="predictionResult" style="margin-top:5px;"></div>
+    </div>
+
+    <div class="panel">
+        <strong>Settings</strong>
+        <label>Game Speed (ms per update)</label>
+        <input id="speedInput" type="number" value="50">
+        <label>Mode</label>
+        <select id="modeSelect">
+            <option value="demo" selected>Demo</option>
+            <option value="real">Real</option>
+        </select>
+        <label>Sound Engine</label>
+        <select id="engineSoundSelect">
+            <option value="on" selected>On</option>
+            <option value="off">Off</option>
+        </select>
+        <label>Sound Crash</label>
+        <select id="crashSoundSelect">
+            <option value="on" selected>On</option>
+            <option value="off">Off</option>
+        </select>
+    </div>
+
+    <div class="panel info-panel">
+        <strong>About Developer</strong>
+        <p>Lameck Mukabana — Full-stack developer creating demo betting simulators for learning and portfolio purposes.</p>
+    </div>
+
+    <div class="panel info-panel">
+        <strong>Warnings</strong>
+        <p>This is a demo game. No real money is involved. Play responsibly and only with virtual coins provided.</p>
+    </div>
+
+    <div class="panel info-panel">
+        <strong>Licenses</strong>
+        <p>Game assets and sounds are free to use for personal/demo purposes. All code is open source under MIT.</p>
+    </div>
+
+    <div class="panel info-panel">
+        <strong>Instructions</strong>
+        <p>Place your bet before the round starts. Watch the multiplier increase. Cash out manually before it crashes!</p>
+    </div>
+
+</div>
+
+<!-- Sounds -->
+<audio id="engineSound" src="assets/engine-rise.mp3" loop></audio>
+<audio id="crashSound" src="assets/crash.mp3"></audio>
+
+<script>
+const canvas = document.getElementById("graphCanvas");
+const ctx = canvas.getContext("2d");
+canvas.width = canvas.offsetWidth;
+canvas.height = canvas.offsetHeight;
+
+let balance = 10000;
+let betAmount = 0;
+let multiplier = 1.00;
+let crashPoint = 0;
+let running = false;
+let acceptingBets = false;
+let hasBet = false;
+let history = [];
+let graphX = 0;
+let updateSpeed = 50;
+let engineSoundOn = true;
+let crashSoundOn = true;
+
+const balanceEl = document.getElementById("balance");
+const multEl = document.getElementById("multiplier");
+const historyEl = document.getElementById("history");
+const betBtn = document.getElementById("betBtn");
+const cashoutBtn = document.getElementById("cashoutBtn");
+const statusEl = document.getElementById("status");
+
+const engineSound = document.getElementById("engineSound");
+const crashSound = document.getElementById("crashSound");
+
+const aiInput = document.getElementById("aiInput");
+const predictBtn = document.getElementById("predictBtn");
+const predictionResult = document.getElementById("predictionResult");
+
+const speedInput = document.getElementById("speedInput");
+const engineSoundSelect = document.getElementById("engineSoundSelect");
+const crashSoundSelect = document.getElementById("crashSoundSelect");
+
+// Weighted house edge crash
+function randomCrash() {
+    let r = Math.random();
+    let crash;
+    if(r < 0.6) crash = parseFloat((1 + Math.random()*4).toFixed(2)); // 1-5
+    else if(r < 0.9) crash = parseFloat((5 + Math.random()*5).toFixed(2)); // 5-10
+    else crash = parseFloat((10 + Math.random()*5).toFixed(2)); // 10-15
+    return crash;
+}
+
+// Start round
+function startRound() {
+    multiplier = 1.00;
+    graphX = 0;
+    crashPoint = randomCrash();
+    running = false;
+    acceptingBets = true;
+    hasBet = false;
+
+    betBtn.disabled = false;
+    cashoutBtn.disabled = true;
+    statusEl.style.display = "none";
+    multEl.textContent = "PLACE BET";
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    setTimeout(() => {
+        acceptingBets = false;
+        running = true;
+        betBtn.disabled = true;
+        multEl.textContent = multiplier.toFixed(2) + "x";
+
+        if(engineSoundOn) engineSound.play();
+    }, 3000);
+}
+
+// End round
+function endRound() {
+    running = false;
+    statusEl.style.display = "block";
+
+    if(engineSoundOn) engineSound.pause();
+    engineSound.currentTime = 0;
+
+    if(crashSoundOn) crashSound.play();
+
+    history.unshift(crashPoint.toFixed(2) + "x");
+    history = history.slice(0, 20);
+    historyEl.innerHTML = history.join("<br>");
+
+    setTimeout(startRound, 5000);
+}
+
+// Graph update
+function update() {
+    if (!running) return;
+
+    multiplier += 0.01;
+    multiplier = parseFloat(multiplier.toFixed(2));
+    multEl.textContent = multiplier.toFixed(2) + "x";
+
+    ctx.strokeStyle = "#1e90ff";
+    ctx.beginPath();
+    ctx.moveTo(graphX, canvas.height);
+    graphX += 1;
+    let y = canvas.height - multiplier*15;
+    if(y<0) y=0;
+    ctx.lineTo(graphX, y);
+    ctx.stroke();
+
+    if(multiplier >= crashPoint) {
+        endRound();
+    }
+}
+
+// Bet logic
+betBtn.onclick = () => {
+    if(!acceptingBets) return;
+
+    betAmount = parseFloat(document.getElementById("betAmount").value);
+    if(betAmount<=0 || betAmount>balance) return;
+
+    balance -= betAmount;
+    balanceEl.textContent = balance.toFixed(2);
+    hasBet = true;
+    cashoutBtn.disabled = false;
+};
+
+cashoutBtn.onclick = () => {
+    if(!hasBet || !running) return;
+
+    let win = betAmount * multiplier;
+    balance += win;
+    balanceEl.textContent = balance.toFixed(2);
+    hasBet = false;
+    cashoutBtn.disabled = true;
+};
+
+// AI predictor
+predictBtn.onclick = () => {
+    const input = aiInput.value.split(',').map(x => parseFloat(x.trim())).filter(x=>!isNaN(x));
+    if(input.length===0){
+        predictionResult.textContent = "Enter valid numbers!";
+        return;
+    }
+    const avg = input.reduce((a,b)=>a+b,0)/input.length;
+    let prediction = "";
+    if(avg<5) prediction="Likely LOW round (1-5x)";
+    else if(avg<10) prediction="Likely MID round (5-10x)";
+    else prediction="Likely HIGH round (10-15x)";
+    const confidence = Math.min(Math.max(Math.round(Math.random()*30+50),50),80);
+    predictionResult.textContent = prediction+" — Confidence: "+confidence+"%";
+};
+
+// Settings listeners
+speedInput.onchange = () => { updateSpeed = parseInt(speedInput.value); };
+engineSoundSelect.onchange = () => { engineSoundOn = engineSoundSelect.value==="on"; };
+crashSoundSelect.onchange = () => { crashSoundOn = crashSoundSelect.value==="on"; };
+
+// Start loop
+setInterval(update, updateSpeed);
+startRound();
+</script>
+</body>
+</html>

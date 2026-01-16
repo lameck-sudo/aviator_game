@@ -1,0 +1,7 @@
+psutil
+numpy
+websockets
+uvicorn
+fastapi
+pydantic
+aiofiles

@@ -1,0 +1,31 @@
+body {
+    background: #111;
+    color: #fff;
+    font-family: Arial, sans-serif;
+    text-align: center;
+}
+#game-container {
+    margin: 20px auto;
+    width: 800px;
+}
+#gameCanvas {
+    border: 2px solid #fff;
+    background: linear-gradient(to top, #005, #00f);
+}
+#controls {
+    margin-top: 10px;
+}
+button, select {
+    font-size: 18px;
+    margin: 0 5px;
+    padding: 5px 10px;
+}
+#multiplier {
+    margin-top: 10px;
+    font-size: 24px;
+}
+#history {
+    margin-top: 10px;
+    font-size: 18px;
+    color: #ccc;
+}

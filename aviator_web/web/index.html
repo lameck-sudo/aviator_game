@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Aviator Game</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="gameCanvas" width="1000" height="600"></canvas>
+        <div id="ui">
+            <div id="balance">Balance: $1000</div>
+            <input type="number" id="betAmount" placeholder="Enter bet">
+            <button id="placeBet">Place Bet</button>
+            <button id="cashout" disabled>Cashout</button>
+            <div id="timer">Next Round: 6s</div>
+        </div>
+        <div id="history">
+            <h3>Round History</h3>
+            <ul id="historyList"></ul>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
