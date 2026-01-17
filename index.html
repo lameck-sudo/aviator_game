@@ -1,81 +1,145 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Aviator Multiplayer Hub</title>
-  <link rel="stylesheet" href="style.css">
-  <style>
-    body { font-family: Arial, sans-serif; background: #0a0a0a; color: #fff; margin:0; padding:0;}
-    header { padding: 20px; text-align: center; background: #1a1a1a;}
-    .container { padding: 20px; max-width: 800px; margin: auto;}
-    .panel { background: #222; padding: 15px; margin: 15px 0; border-radius: 10px; }
-    .btn { padding: 10px 20px; margin: 5px; border: none; border-radius: 5px; cursor: pointer; }
-    .btn-login { background: #4CAF50; color: white; }
-    .btn-play { background: #2196F3; color: white; }
-    .btn-demo { background: #ff9800; color: white; }
-    .balance { font-size: 1.2em; font-weight: bold; }
-    .multiplier { font-weight: bold; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aviator Multiplayer Game</title>
+<style>
+    body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background: linear-gradient(to right, #0f2027, #203a43, #2c5364);
+        color: #fff;
+    }
+    .container {
+        max-width: 900px;
+        margin: 20px auto;
+        padding: 20px;
+        background: rgba(0,0,0,0.6);
+        border-radius: 15px;
+        box-shadow: 0 0 20px rgba(0,0,0,0.5);
+    }
+    h1 { text-align: center; }
+    .panel { 
+        background: rgba(255,255,255,0.05);
+        padding: 15px;
+        border-radius: 10px;
+        margin-bottom: 15px;
+    }
+    .panel h2 { margin-top: 0; }
+    button {
+        padding: 10px 20px;
+        margin: 5px;
+        font-size: 16px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        background: #1abc9c;
+        color: #fff;
+        transition: background 0.3s;
+    }
+    button:hover { background: #16a085; }
+    button:disabled { background: #555; cursor: not-allowed; }
+    .history { max-height: 150px; overflow-y: auto; font-size: 14px; }
+</style>
 </head>
 <body>
-
-<header>
-  <h1>Aviator Multiplayer Game Hub</h1>
-</header>
-
 <div class="container">
+    <h1>Aviator Multiplayer Game</h1>
 
-  <!-- Login Panel -->
-  <div class="panel" id="loginPanel">
-    <h2>Login</h2>
-    <input type="text" id="username" placeholder="Enter username" />
-    <input type="password" id="password" placeholder="Enter password" />
-    <button class="btn btn-login" onclick="login()">Login</button>
-  </div>
+    <div class="panel">
+        <h2>Balance: $<span id="balance">1000</span></h2>
+        <input type="number" id="betAmount" placeholder="Enter Bet" min="1">
+        <button id="betBtn">Bet</button>
+        <button id="cashoutBtn" disabled>Cash Out</button>
+    </div>
 
-  <!-- User Dashboard -->
-  <div class="panel" id="userPanel" style="display:none;">
-    <h2>Welcome, <span id="userDisplay"></span></h2>
-    <p>Balance: $<span id="userBalance">1000</span></p>
-    <button class="btn btn-play" onclick="startGame()">Play Game</button>
-    <button class="btn btn-demo" onclick="startDemo()">Demo Mode</button>
-  </div>
+    <div class="panel">
+        <h2>Current Multiplier: <span id="multiplier">0.00x</span></h2>
+        <h3>Status: <span id="status">Waiting for Bet</span></h3>
+    </div>
 
-  <!-- Game Info Panel -->
-  <div class="panel" id="gameInfo" style="display:none;">
-    <h3>Crash Multipliers</h3>
-    <p>Low odds: <span class="multiplier">1.1x - 2x</span></p>
-    <p>Moderate: <span class="multiplier">2x - 5x</span></p>
-    <p>Rare high: <span class="multiplier">5x - 100x</span></p>
-    <p>House edge: <span id="houseEdge">2%</span></p>
-  </div>
-
+    <div class="panel history">
+        <h2>Round History</h2>
+        <ul id="historyList"></ul>
+    </div>
 </div>
 
 <script>
-  function login() {
-    const username = document.getElementById("username").value;
-    const password = document.getElementById("password").value;
-    if(username && password) {
-      document.getElementById("loginPanel").style.display = "none";
-      document.getElementById("userPanel").style.display = "block";
-      document.getElementById("userDisplay").textContent = username;
-    } else {
-      alert("Enter valid credentials");
+let balance = 1000;
+let betAmount = 0;
+let inRound = false;
+let multiplier = 0;
+let ws;
+
+// Use your **Railway online URL** here:
+const WS_URL = "wss://aviator-game-xyz.up.railway.app/ws";
+
+function connectWebSocket() {
+    ws = new WebSocket(WS_URL);
+
+    ws.onopen = () => console.log("Connected to server");
+    ws.onmessage = (msg) => {
+        const data = JSON.parse(msg.data);
+        handleServerMessage(data);
     }
-  }
+    ws.onclose = () => {
+        console.log("Disconnected, retrying in 3s...");
+        setTimeout(connectWebSocket, 3000);
+    }
+}
 
-  function startGame() {
-    alert("Starting real game... (connect to backend here)");
-    document.getElementById("gameInfo").style.display = "block";
-  }
+function handleServerMessage(data) {
+    if(data.type === "round_update") {
+        multiplier = data.multiplier.toFixed(2);
+        document.getElementById("multiplier").innerText = multiplier + "x";
 
-  function startDemo() {
-    alert("Demo mode: free play, no money involved");
-    document.getElementById("gameInfo").style.display = "block";
-  }
+        if(data.roundOver) {
+            document.getElementById("status").innerText = "Round Over";
+            inRound = false;
+            document.getElementById("betBtn").disabled = false;
+            document.getElementById("cashoutBtn").disabled = true;
+            // update balance
+            balance = data.balance;
+            document.getElementById("balance").innerText = balance.toFixed(2);
+            // add to history
+            addHistory(data);
+        }
+    }
+    if(data.type === "error") {
+        alert(data.message);
+    }
+}
+
+function addHistory(data) {
+    const li = document.createElement("li");
+    li.textContent = `Bet: $${data.bet} → Cashout Multiplier: ${data.cashout}x → Win: $${data.win.toFixed(2)}`;
+    document.getElementById("historyList").prepend(li);
+}
+
+document.getElementById("betBtn").onclick = () => {
+    const val = parseFloat(document.getElementById("betAmount").value);
+    if(isNaN(val) || val <= 0 || val > balance) {
+        alert("Invalid bet amount");
+        return;
+    }
+    betAmount = val;
+    inRound = true;
+    document.getElementById("status").innerText = "Round Started";
+    document.getElementById("betBtn").disabled = true;
+    document.getElementById("cashoutBtn").disabled = false;
+
+    ws.send(JSON.stringify({type: "place_bet", bet: betAmount}));
+}
+
+document.getElementById("cashoutBtn").onclick = () => {
+    if(!inRound) return;
+    ws.send(JSON.stringify({type: "cash_out"}));
+    document.getElementById("cashoutBtn").disabled = true;
+    document.getElementById("status").innerText = "Cash Out Sent";
+}
+
+connectWebSocket();
 </script>
-
 </body>
 </html>
