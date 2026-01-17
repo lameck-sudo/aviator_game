@@ -46,7 +46,7 @@ def hash_password(p):
     return hashlib.sha256(p.encode()).hexdigest()
 
 def generate_crash():
-    return 1 + (random.random()*10)**0.7 * HOUSE_EDGE
+    return 1 + (random.random()*30)**1.5 * HOUSE_EDGE
 
 def get_user_balance(user_id):
     c.execute("SELECT balance FROM users WHERE id=?",(user_id,))
