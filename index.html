@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aviator Multiplayer Hub</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    body { font-family: Arial, sans-serif; background: #0a0a0a; color: #fff; margin:0; padding:0;}
+    header { padding: 20px; text-align: center; background: #1a1a1a;}
+    .container { padding: 20px; max-width: 800px; margin: auto;}
+    .panel { background: #222; padding: 15px; margin: 15px 0; border-radius: 10px; }
+    .btn { padding: 10px 20px; margin: 5px; border: none; border-radius: 5px; cursor: pointer; }
+    .btn-login { background: #4CAF50; color: white; }
+    .btn-play { background: #2196F3; color: white; }
+    .btn-demo { background: #ff9800; color: white; }
+    .balance { font-size: 1.2em; font-weight: bold; }
+    .multiplier { font-weight: bold; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Aviator Multiplayer Game Hub</h1>
+</header>
+
+<div class="container">
+
+  <!-- Login Panel -->
+  <div class="panel" id="loginPanel">
+    <h2>Login</h2>
+    <input type="text" id="username" placeholder="Enter username" />
+    <input type="password" id="password" placeholder="Enter password" />
+    <button class="btn btn-login" onclick="login()">Login</button>
+  </div>
+
+  <!-- User Dashboard -->
+  <div class="panel" id="userPanel" style="display:none;">
+    <h2>Welcome, <span id="userDisplay"></span></h2>
+    <p>Balance: $<span id="userBalance">1000</span></p>
+    <button class="btn btn-play" onclick="startGame()">Play Game</button>
+    <button class="btn btn-demo" onclick="startDemo()">Demo Mode</button>
+  </div>
+
+  <!-- Game Info Panel -->
+  <div class="panel" id="gameInfo" style="display:none;">
+    <h3>Crash Multipliers</h3>
+    <p>Low odds: <span class="multiplier">1.1x - 2x</span></p>
+    <p>Moderate: <span class="multiplier">2x - 5x</span></p>
+    <p>Rare high: <span class="multiplier">5x - 100x</span></p>
+    <p>House edge: <span id="houseEdge">2%</span></p>
+  </div>
+
+</div>
+
+<script>
+  function login() {
+    const username = document.getElementById("username").value;
+    const password = document.getElementById("password").value;
+    if(username && password) {
+      document.getElementById("loginPanel").style.display = "none";
+      document.getElementById("userPanel").style.display = "block";
+      document.getElementById("userDisplay").textContent = username;
+    } else {
+      alert("Enter valid credentials");
+    }
+  }
+
+  function startGame() {
+    alert("Starting real game... (connect to backend here)");
+    document.getElementById("gameInfo").style.display = "block";
+  }
+
+  function startDemo() {
+    alert("Demo mode: free play, no money involved");
+    document.getElementById("gameInfo").style.display = "block";
+  }
+</script>
+
+</body>
+</html>
